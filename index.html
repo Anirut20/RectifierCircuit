@@ -114,13 +114,14 @@
         const outputCtx = outputCanvas.getContext('2d');
         let animationFrameId;
 
-        // --- UPDATED: Using actual file names provided by user ---
+        // --- UPDATED: Using GitHub URLs for images ---
+        const githubBaseUrl = 'https://raw.githubusercontent.com/Anirut20/RectifierCircuit/main/';
         const circuits = {
-            'half-wave': { name: 'ครึ่งคลื่น', image: 'Haft wave.PNG' },
-            'full-wave-ct': { name: 'เต็มคลื่น (แท็ปกลาง)', image: 'Fullwave-centertab.PNG' },
-            'full-wave-bridge': { name: 'เต็มคลื่น (บริดจ์)', image: 'Fullwave-brige.PNG' },
+            'half-wave': { name: 'ครึ่งคลื่น', image: `${githubBaseUrl}Haft%20wave.png` },
+            'full-wave-ct': { name: 'เต็มคลื่น (แท็ปกลาง)', image: `${githubBaseUrl}Fullwave-centertab.png` },
+            'full-wave-bridge': { name: 'เต็มคลื่น (บริดจ์)', image: `${githubBaseUrl}Fullwave-brige.png` },
         };
-        const capacitorImageSrc = 'C.PNG';
+        const capacitorImageSrc = `${githubBaseUrl}C.png`;
         
         const calcParams = {
             v_rms: 12, i_load: 0.5, freq: 50,
@@ -172,7 +173,6 @@
             capacitorControls.classList.toggle('opacity-30', !appState.filterEnabled);
             capacitorControls.classList.toggle('pointer-events-none', !appState.filterEnabled);
             
-            // --- UPDATED: Logic to show capacitor image ---
             if (appState.filterEnabled) {
                 capacitorDiagram.innerHTML = `<img src="${capacitorImageSrc}" alt="Capacitor Filter" class="h-2/3 object-contain">`;
                 capacitorDiagram.classList.remove('hidden');
