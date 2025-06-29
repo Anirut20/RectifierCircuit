@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ห้องทดลองวงจรเรียงกระแส (UI ใหม่)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .canvas-bg {
+            background-color: #000;
+            border: 2px solid #34495e; /* Oscilloscope screen border */
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            position: relative;
+        }
+        .nav-btn {
+            transition: all 0.2s;
+        }
+        .nav-btn.active {
+            background-color: #f6e05e;
+            color: #1a202c;
+            font-weight: bold;
+        }
+        /* Toggle Switch styling */
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #4a5568; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #48bb78; }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body class="bg-gray-800 text-white flex items-center justify-center min-h-screen p-2 md:p-4">
+
+    <div id="app" class="w-full max-w-7xl mx-auto bg-gray-900 rounded-2xl p-4 shadow-2xl">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-yellow-300 mb-4">ห้องทดลองวงจรเรียงกระแส</h1>
+
+        <!-- Main Content Area -->
+        <div class="flex flex-col md:flex-row items-stretch justify-around w-full gap-2 md:gap-4 mb-4">
+            <!-- Input -->
+            <div class="flex flex-col items-center text-center p-3 border-2 border-green-500 rounded-lg w-full md:w-1/4">
+                <h4 id="input-title" class="font-bold mb-2 text-green-300">ค่าแรงดัน Input</h4>
+                <p class="text-sm text-gray-400 mb-2">(12Vrms, 50Hz)</p>
+                <div class="canvas-bg w-full flex-grow"><canvas id="input-canvas"></canvas></div>
+            </div>
+
+            <div class="self-center text-green-500 text-4xl font-bold transform rotate-90 md:rotate-0">→</div>
+
+            <!-- Circuit + Filter -->
+            <div class="flex flex-col items-center text-center p-3 border-2 border-green-500 rounded-lg w-full md:w-1/2">
+                <h4 id="circuit-title" class="font-bold mb-2 text-green-300">วงจรและฟิลเตอร์</h4>
+                <div class="flex w-full h-40 md:h-full gap-2 relative">
+                    <div id="circuit-diagram" class="w-full md:w-3/4 bg-gray-800 rounded-md"></div>
+                    <div id="capacitor-diagram" class="hidden md:flex w-1/4 items-center justify-center bg-gray-800 rounded-md">
+                         <!-- Capacitor image will be inserted here by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="self-center text-green-500 text-4xl font-bold transform rotate-90 md:rotate-0">→</div>
+            
+            <!-- Output -->
+            <div class="flex flex-col items-center text-center p-3 border-2 border-green-500 rounded-lg w-full md:w-1/4">
+                <h4 id="output-title" class="font-bold mb-2 text-green-300">ค่าแรงดัน Output</h4>
+                <p class="text-sm text-gray-400 mb-2"></p>
+                <div class="canvas-bg w-full flex-grow"><canvas id="output-canvas"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-gray-800 p-4 rounded-lg mt-4">
+            <div id="rectifier-nav" class="flex justify-center gap-2 md:gap-4 mb-6 flex-wrap">
+                 <button data-type="half-wave" class="nav-btn bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg">ครึ่งคลื่น</button>
+                 <button data-type="full-wave-ct" class="nav-btn bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg">เต็มคลื่น (แท็ปกลาง)</button>
+                 <button data-type="full-wave-bridge" class="nav-btn bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg">เต็มคลื่น (บริดจ์)</button>
+            </div>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-8">
+                <div class="flex items-center gap-4">
+                    <span class="font-bold text-lg">C Filter:</span>
+                    <label class="switch"><input type="checkbox" id="filter-toggle"><span class="slider"></span></label>
+                    <span id="filter-status" class="font-bold text-red-400">OFF</span>
+                </div>
+                <div id="capacitor-controls" class="flex items-center gap-2 md:gap-4 flex-wrap justify-center opacity-30 pointer-events-none">
+                     <span class="font-bold">ขนาด C:</span>
+                     <label><input type="radio" name="cap-size" value="small" class="mr-1"> 470uF</label>
+                     <label><input type="radio" name="cap-size" value="medium" class="mr-1" checked> 1000uF</label>
+                     <label><input type="radio" name="cap-size" value="large" class="mr-1"> 4700uf</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appState = { rectifierType: 'half-wave', filterEnabled: false, capacitorSize: 'medium' };
+
+        const navContainer = document.getElementById('rectifier-nav');
+        const circuitDiagram = document.getElementById('circuit-diagram');
+        const capacitorDiagram = document.getElementById('capacitor-diagram');
+        const filterToggle = document.getElementById('filter-toggle');
+        const filterStatus = document.getElementById('filter-status');
+        const capacitorControls = document.getElementById('capacitor-controls');
+        const circuitTitle = document.getElementById('circuit-title');
+        const outputTitle = document.getElementById('output-title');
+        
+        const inputCanvas = document.getElementById('input-canvas');
+        const inputCtx = inputCanvas.getContext('2d');
+        const outputCanvas = document.getElementById('output-canvas');
+        const outputCtx = outputCanvas.getContext('2d');
+        let animationFrameId;
+
+        // --- UPDATED: Using actual file names provided by user ---
+        const circuits = {
+            'half-wave': { name: 'ครึ่งคลื่น', image: 'Haft wave.PNG' },
+            'full-wave-ct': { name: 'เต็มคลื่น (แท็ปกลาง)', image: 'Fullwave-centertab.PNG' },
+            'full-wave-bridge': { name: 'เต็มคลื่น (บริดจ์)', image: 'Fullwave-brige.PNG' },
+        };
+        const capacitorImageSrc = 'C.PNG';
+        
+        const calcParams = {
+            v_rms: 12, i_load: 0.5, freq: 50,
+            diode_drop_half: 0.7, diode_drop_full: 1.4,
+            capacitors: {
+                small: { label: '470µF', value: 470e-6, discharge: 2.0 },
+                medium: { label: '1000µF', value: 1000e-6, discharge: 0.9 },
+                large: { label: '4700µF', value: 4700e-6, discharge: 0.2 }
+            }
+        };
+
+        function calculateAndDisplayValues() {
+            const v_peak = calcParams.v_rms * Math.sqrt(2);
+            let v_peak_load, v_dc_unfiltered, ripple_freq;
+
+            if (appState.rectifierType === 'half-wave') {
+                v_peak_load = v_peak - calcParams.diode_drop_half;
+                v_dc_unfiltered = v_peak_load / Math.PI;
+                ripple_freq = calcParams.freq;
+            } else {
+                v_peak_load = v_peak - calcParams.diode_drop_full;
+                v_dc_unfiltered = (2 * v_peak_load) / Math.PI;
+                ripple_freq = calcParams.freq * 2;
+            }
+
+            let v_out_display = v_dc_unfiltered.toFixed(2);
+            let c_display = 'N/A';
+
+            if (appState.filterEnabled) {
+                const capData = calcParams.capacitors[appState.capacitorSize];
+                c_display = capData.label;
+                const v_ripple = calcParams.i_load / (capData.value * ripple_freq);
+                v_out_display = (v_peak_load - (v_ripple / 2)).toFixed(2);
+            }
+            circuitTitle.innerHTML = `วงจรและฟิลเตอร์ <span class="text-base text-gray-400 font-normal">(C: ${c_display})</span>`;
+            outputTitle.innerHTML = `ค่าแรงดัน Output <span class="text-base text-gray-400 font-normal">(Vout ≈ ${v_out_display} V)</span>`;
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === appState.rectifierType);
+            });
+            circuitDiagram.innerHTML = `<img src="${circuits[appState.rectifierType].image}" alt="${circuits[appState.rectifierType].name}" class="w-full h-full object-contain">`;
+
+            filterToggle.checked = appState.filterEnabled;
+            filterStatus.textContent = appState.filterEnabled ? 'ON' : 'OFF';
+            filterStatus.classList.toggle('text-green-400', appState.filterEnabled);
+            filterStatus.classList.toggle('text-red-400', !appState.filterEnabled);
+            capacitorControls.classList.toggle('opacity-30', !appState.filterEnabled);
+            capacitorControls.classList.toggle('pointer-events-none', !appState.filterEnabled);
+            
+            // --- UPDATED: Logic to show capacitor image ---
+            if (appState.filterEnabled) {
+                capacitorDiagram.innerHTML = `<img src="${capacitorImageSrc}" alt="Capacitor Filter" class="h-2/3 object-contain">`;
+                capacitorDiagram.classList.remove('hidden');
+                capacitorDiagram.classList.add('md:flex');
+            } else {
+                capacitorDiagram.innerHTML = '';
+                capacitorDiagram.classList.add('hidden');
+                capacitorDiagram.classList.remove('md:flex');
+            }
+            
+            calculateAndDisplayValues();
+            
+            if(animationFrameId) cancelAnimationFrame(animationFrameId);
+            time = 0;
+            lastY = outputCanvas.height / 2;
+            animate();
+        }
+
+        function resizeCanvases() {
+            [inputCanvas, outputCanvas].forEach(canvas => {
+                const container = canvas.parentElement;
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientWidth * 0.8; 
+            });
+            updateUI();
+        }
+        
+        function drawGrid(ctx, width, height) {
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = '#2d3748'; ctx.lineWidth = 1;
+            for (let i = width/10; i < width; i += width/10) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
+            for (let i = height/8; i < height; i += height/8) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke(); }
+        }
+        
+        let time = 0; let lastY = 0;
+        function animate() {
+            const width = inputCanvas.width; const height = inputCanvas.height;
+            const centerY = height / 2; 
+            const amplitude = height / 2.1;
+            drawGrid(inputCtx, width, height); drawGrid(outputCtx, width, height);
+            
+            inputCtx.beginPath(); inputCtx.strokeStyle = '#6ee7b7'; inputCtx.lineWidth = 2.5;
+            for (let x = 0; x < width; x++) {
+                const y = centerY - Math.sin((x / width) * 4 * Math.PI + time) * amplitude;
+                if (x === 0) inputCtx.moveTo(x, y); else inputCtx.lineTo(x, y);
+            }
+            inputCtx.stroke();
+            
+            outputCtx.beginPath(); outputCtx.strokeStyle = '#f6e05e'; outputCtx.lineWidth = 3;
+            for (let x = 0; x < width; x++) {
+                let sinValue = Math.sin((x / width) * 4 * Math.PI + time);
+                let rectifiedValue;
+                switch (appState.rectifierType) {
+                    case 'half-wave': rectifiedValue = (sinValue > 0 ? sinValue : 0) * amplitude; break;
+                    default: rectifiedValue = Math.abs(sinValue) * amplitude; break;
+                }
+                
+                let y;
+                if (appState.filterEnabled) {
+                    let targetY = centerY - rectifiedValue;
+                    if (targetY < lastY) { lastY = targetY; } 
+                    else { lastY += calcParams.capacitors[appState.capacitorSize].discharge; }
+                    y = lastY;
+                } else {
+                    y = centerY - rectifiedValue;
+                }
+                if (x === 0) outputCtx.moveTo(x, y); else outputCtx.lineTo(x, y);
+            }
+            outputCtx.stroke();
+            time += 0.05; if (time > Math.PI * 2) time = 0;
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        navContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') { appState.rectifierType = e.target.dataset.type; updateUI(); }
+        });
+        filterToggle.addEventListener('change', (e) => {
+            appState.filterEnabled = e.target.checked; updateUI();
+        });
+        capacitorControls.addEventListener('change', (e) => {
+            if (e.target.name === 'cap-size') { appState.capacitorSize = e.target.value; updateUI(); }
+        });
+        window.addEventListener('resize', resizeCanvases);
+        document.addEventListener('DOMContentLoaded', resizeCanvases);
+        
+    </script>
+</body>
+</html>
